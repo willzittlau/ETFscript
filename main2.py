@@ -23,14 +23,27 @@ for i in range(0,len(pf['Symbol'])):
     get_url = requests.get(url)
     get_text = get_url.text
     soup = BeautifulSoup(get_text, "html.parser")
-    for div in soup.findAll('h1', attrs={'class':'securityName'}):
-        name= div.find('a').contents[0]
-        pf.Name = pf.Name.fillna('')
-        pf.at[i, 'Name'] = name
+    try:
+        for div in soup.findAll('h1', attrs={'class':'securityName'}):
+            name= div.find('a').contents[0]
+            print(name)
+            pf.Name = pf.Name.fillna('')
+            pf.at[i, 'Name'] = name
+    except:
+        pass
+    else:
+        for div in soup.findAll('h1', attrs={'class':'index-name-text'}):
+            name= div.string
+            name = name.replace("\n", "")
+            name = name[24:]
+            print(name)
+            pf.Name = pf.Name.fillna('')
+            pf.at[i, 'Name'] = name
 
 # Create dict of ETF names to append to final print out
 etfnames = {}
 for i in range(0,len(pf['Name'])):
+    print(pf.at[i, 'Name'])
     if 'ETF' in pf.at[i, 'Name']:
         etfnames.setdefault(pf.at[i,'Symbol'], pf.at[i,'Name'] )
 
@@ -85,11 +98,12 @@ etf_lib = list()
 # Read from ycharts for each ticker symbol in user's portfolio
 for i in range(0,len(pf['Symbol'])):
     try:
-        wds=pd.read_html('https://ycharts.com/companies/%s/holdings' % pf.at[i, 'Symbol'])[0]
+        wds=pd.read_html('https://ycharts.com/companies/%s/holdings' % pf.at[i, 'Symbol'])[1]
     # This statement skips equities so the scraper can pull ETF data only
     except:
         pass
     else:
+        wds = wds.rename(columns={"%\xa0Weight": "% Weight", "%\xa0Change" : "% Chg"})
         # Filter col of interest and convert '% Assets' col from str to float, format Symbol col
         for j in range(0,len(wds['% Weight'])):
             wds.at[j, '% Weight'] = wds.at[j, '% Weight'].replace("%","")
